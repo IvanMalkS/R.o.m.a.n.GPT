@@ -12,7 +12,7 @@ def create_dataset(X, y, time_steps=1):
 
 def preprocess_data(data):
     df = pd.DataFrame(data)  # Convert JSON to DataFrame after loop
-    df = df[df['city'] == 'Москва']
+    df = df[df['city'] == 'Новосибирск']
     df = df.drop(columns=['city', 'id', 'bdAddTime', 'ad_squares', 'anal_type', 'data_range', 'data_date',
                           'data_table'])  # Drop unnecessary columns
 

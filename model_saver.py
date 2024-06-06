@@ -1,17 +1,26 @@
 import os
 import numpy as np
 import tensorflow as tf
+
 from model_treiner import create_and_train_model
 from prediction_and_visualization import predict_and_calculate_mean_error
 
 
-def save_best_model(X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual_values, X, min_error_threshold=0.5, max_iterations=100):
+def save_latent_states(model, X, output_dir='latent_states'):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    latent_states = model.predict(X, batch_size=64)
+    np.save(os.path.join(output_dir, 'latent_states.npy'), latent_states)
+
+
+def save_best_model(X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual_values, X, max_iterations=100):
     # Create directory for saving models, if it doesn't exist
     if not os.path.exists('models'):
         os.makedirs('models')
 
     TIME_STEPS = min(30, len(X))  # Choose the window size
-    units = 128
+    units = 64
 
     for i in range(max_iterations):
         print(f'Training iteration {i + 1}')
@@ -32,20 +41,9 @@ def save_best_model(X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual
                                      np.array(next_value).reshape(1, 1, 1).repeat(X.shape[1], axis=2), axis=1)
             last_sequence = new_sequence
 
-        mean_error = np.mean([(abs(a - p) / a) * 100 for a, p in zip(actual_values, iter_predictions)])
-        print(f"Mean percentage error (Training {i + 1}): {mean_error:.2f}%")
-
-        # Save the model if it has the least mean error so far or if it meets the threshold
-        if os.path.exists('models/best_model_MSK.keras'):
-            loaded_best_model = tf.keras.models.load_model('models/best_model_MSK.keras')
-            best_mean_error = predict_and_calculate_mean_error(loaded_best_model, X, scaler_X, scaler_y, actual_values)
-            if mean_error < best_mean_error or mean_error <= min_error_threshold:
-                model_filename = f'models/best_model_MSK_{mean_error:.2f}%.keras'
-                model.save(model_filename)
-        else:
-            if mean_error <= min_error_threshold:
-                model_filename = f'models/best_model_MSK_{mean_error:.2f}%.keras'
-                model.save(model_filename)
-
-        if mean_error <= min_error_threshold:
-            break
+        daily_errors = [(abs(a - p) / a) * 100 for a, p in zip(actual_values, iter_predictions)]
+        print(f"Daily percentage errors (Training {i + 1}): {daily_errors}")
+        save_latent_states(model, X)
+# Example usage:
+# X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual_values, X should be defined before calling this function
+# save_best_model(X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual_values, X)

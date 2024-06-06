@@ -1,30 +1,28 @@
 import tensorflow as tf
-from keras.models import Sequential
-from keras.layers import Dense, LSTM, Dropout, Bidirectional, LayerNormalization, Input
-from keras.callbacks import EarlyStopping
-import os
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.callbacks import ModelCheckpoint
 
-# Перенаправление стандартного вывода и ошибок в ноль
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-def create_and_train_model(X_train, y_train, X_test, y_test, time_steps, units):
+def create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS, units, batch_size=32):
     model = Sequential()
-    model.add(Input(shape=(time_steps, X_train.shape[2])))
-    model.add(Bidirectional(LSTM(units, activation='tanh', return_sequences=True)))
-    model.add(LayerNormalization())
-    model.add(Dropout(0.2))
-    model.add(Bidirectional(LSTM(units, activation='tanh', return_sequences=False)))
-    model.add(LayerNormalization())
-    model.add(Dropout(0.2))
+    model.add(LSTM(units, input_shape=(TIME_STEPS, X_train.shape[2]), kernel_initializer='orthogonal'))
     model.add(Dense(1))
+    model.compile(optimizer='adam', loss='mse')
 
-    # Создаем объект оптимизатора RMSprop с learning rate 0.001
-    optimizer = tf.keras.optimizers.RMSprop(learning_rate=0.001)
+    # Custom callback to save the model every 10 epochs
+    class CustomModelCheckpoint(tf.keras.callbacks.Callback):
+        def on_epoch_end(self, epoch, logs=None):
+            if (epoch + 1) % 10 == 0:
+                model.save(f'models/model_epoch_{epoch + 1:02d}.keras')
 
-    model.compile(loss='mean_squared_error', optimizer=optimizer)
+    custom_checkpoint_callback = CustomModelCheckpoint()
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True)
-
-    history = model.fit(X_train, y_train, epochs=200, batch_size=64, validation_data=(X_test, y_test),
-                        callbacks=[early_stopping], verbose=0)
+    history = model.fit(
+        X_train, y_train,
+        epochs=100,
+        validation_data=(X_test, y_test),
+        verbose=0,
+        callbacks=[custom_checkpoint_callback]
+    )
 
     return model, history

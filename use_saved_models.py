@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     if data:
         # Use the saved model for predicting new values
-        model_path = "models/best_model_MSK_23.75%.keras"  # Replace with the path to your saved model
+        model_path = "models/model_epoch_10.keras"
         predictions, actual_values = predict_with_saved_model(model_path, data)
 
         # Print the predictions and actual values
