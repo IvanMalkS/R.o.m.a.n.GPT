@@ -21,7 +21,7 @@ if data:
 
 
     model_saver.save_best_model(X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual_values, X,
-                                min_error_threshold=30, max_iterations=10000)
+                                min_error_threshold=1, max_iterations=100000)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
