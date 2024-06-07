@@ -5,14 +5,17 @@ import tensorflow as tf
 from model_treiner import create_and_train_model
 from prediction_and_visualization import predict_and_calculate_mean_error
 
-
 def save_latent_states(model, X, output_dir='latent_states'):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    latent_states = model.predict(X, batch_size=64)
-    np.save(os.path.join(output_dir, 'latent_states.npy'), latent_states)
+    # Ensure X has the correct shape (batch_size, time_steps, num_features)
+    if len(X.shape) != 3:
+        X = np.expand_dims(X, axis=0)  # Add batch dimension if missing
 
+
+    latent_states = model.predict(X, batch_size=32)
+    np.save(os.path.join(output_dir, 'latent_states.npy'), latent_states)
 
 def save_best_model(X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual_values, X, max_iterations=100):
     # Create directory for saving models, if it doesn't exist
@@ -44,6 +47,5 @@ def save_best_model(X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual
         daily_errors = [(abs(a - p) / a) * 100 for a, p in zip(actual_values, iter_predictions)]
         print(f"Daily percentage errors (Training {i + 1}): {daily_errors}")
         save_latent_states(model, X)
-# Example usage:
-# X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual_values, X should be defined before calling this function
-# save_best_model(X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual_values, X)
+
+    save_latent_states(model, X)

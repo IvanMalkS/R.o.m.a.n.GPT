@@ -1,11 +1,14 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
-from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler
+from tensorflow.keras.regularizers import l2
 
 def create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS, units, batch_size=32):
     model = Sequential()
-    model.add(LSTM(units, input_shape=(TIME_STEPS, X_train.shape[2]), kernel_initializer='orthogonal'))
+    model.add(tf.keras.Input(shape=(TIME_STEPS, X_train.shape[2])))
+    model.add(LSTM(units, kernel_initializer='orthogonal', kernel_regularizer=l2(0.01)))
+    model.add(Dropout(0.2))
     model.add(Dense(1))
     model.compile(optimizer='adam', loss='mse')
 
@@ -17,12 +20,24 @@ def create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS, units, 
 
     custom_checkpoint_callback = CustomModelCheckpoint()
 
+    early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+    checkpoint = ModelCheckpoint('best_model.keras', monitor='val_loss', save_best_only=True, mode='min')
+
+    def scheduler(epoch, lr):
+        if epoch < 50:
+            return float(lr)
+        else:
+            return float(lr * tf.math.exp(-0.1))
+
+    lr_scheduler = LearningRateScheduler(scheduler)
+
     history = model.fit(
         X_train, y_train,
         epochs=100,
+        batch_size=batch_size,
         validation_data=(X_test, y_test),
         verbose=0,
-        callbacks=[custom_checkpoint_callback]
+        callbacks=[custom_checkpoint_callback, early_stopping, checkpoint, lr_scheduler]
     )
 
     return model, history
