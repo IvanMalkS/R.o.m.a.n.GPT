@@ -1,16 +1,49 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization, Bidirectional
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler
 from tensorflow.keras.regularizers import l2
+import tensorflow.keras.backend as K
+
+
+def correlation_coefficient(y_true, y_pred):
+    x = y_true
+    y = y_pred
+    mx = K.mean(x, axis=0)
+    my = K.mean(y, axis=0)
+    xm, ym = x - mx, y - my
+    r_num = K.sum(xm * ym)
+    r_den = K.sqrt(K.sum(K.square(xm)) * K.sum(K.square(ym)))
+    r = r_num / r_den
+    return K.mean(r)
+
 
 def create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS, units, batch_size=32):
     model = Sequential()
     model.add(tf.keras.Input(shape=(TIME_STEPS, X_train.shape[2])))
-    model.add(LSTM(units, kernel_initializer='orthogonal', kernel_regularizer=l2(0.01)))
+
+    # Adding Bidirectional LSTM layers
+    model.add(
+        Bidirectional(LSTM(units, return_sequences=True, kernel_initializer='orthogonal', kernel_regularizer=l2(0.01))))
     model.add(Dropout(0.2))
-    model.add(Dense(1))
-    model.compile(optimizer='adam', loss='mse')
+    model.add(BatchNormalization())
+
+    # Adding a second LSTM layer
+    model.add(Bidirectional(LSTM(units, kernel_initializer='orthogonal', kernel_regularizer=l2(0.01))))
+    model.add(Dropout(0.2))
+    model.add(BatchNormalization())
+
+    # Adding Dense layers with ReLU activation
+    model.add(Dense(100, activation=tf.nn.relu, kernel_regularizer=l2(0.01)))
+    model.add(Dropout(0.2))
+    model.add(BatchNormalization())
+    model.add(Dense(100, activation=tf.nn.relu, kernel_regularizer=l2(0.01)))
+    model.add(Dropout(0.2))
+    model.add(BatchNormalization())
+
+    model.add(Dense(1, activation='linear'))  # Changing activation function to linear for regression
+
+    model.compile(optimizer='adam', loss='mse', metrics=[correlation_coefficient])
 
     # Custom callback to save the model every 10 epochs
     class CustomModelCheckpoint(tf.keras.callbacks.Callback):
