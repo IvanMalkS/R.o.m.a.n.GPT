@@ -12,7 +12,7 @@ def create_dataset(X, y, time_steps=1):
 
 def preprocess_data(data):
     df = pd.DataFrame(data)  # Convert JSON to DataFrame after loop
-    df = df[df['city'] == 'Новосибирск']
+    df = df[df['city'] == 'Москва']
     df = df.drop(columns=['city', 'id', 'bdAddTime', 'ad_squares', 'anal_type', 'data_range', 'data_date',
                           'data_table'])  # Drop unnecessary columns
 
@@ -29,7 +29,7 @@ def preprocess_data(data):
          'price_sum_ad', 'ad_quantity', 'inPlace']]
 
     # Extract actual values before normalization
-    actual_values = df['medial_m'].values[-30:]
+    actual_values = df['medial_m'].values[-15:]
 
     # Convert to float32
     data = df.values.astype('float32')

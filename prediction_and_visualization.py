@@ -28,7 +28,7 @@ def predict_and_visualize(X_train, X_test, y_train, y_test, scaler_X, scaler_y, 
 
     predictions = []
 
-    for _ in range(30):  # Predict for the next 30 days
+    for _ in range(15):  # Predict for the next 30 days
         next_value = predict_and_inverse_transform(model, last_sequence, scaler_y)
         predictions.append(next_value)
 
@@ -79,7 +79,7 @@ def predict_and_visualize(X_train, X_test, y_train, y_test, scaler_X, scaler_y, 
         last_sequence = last_sequence.reshape((1, TIME_STEPS, X.shape[1]))
 
         iter_predictions = []
-        for _ in range(30):  # Predict for the next 30 days
+        for _ in range(15):  # Predict for the next 30 days
             next_value = predict_and_inverse_transform(model, last_sequence, scaler_y)
             iter_predictions.append(next_value)
 
@@ -112,7 +112,7 @@ def predict_and_calculate_mean_error(model, X, scaler_X, scaler_y, actual_values
 
     predictions = []
 
-    for _ in range(30):  # Predict for the next 30 days
+    for _ in range(15):  # Predict for the next 30 days
         next_value_normalized = model.predict(last_sequence)
         next_value = scaler_y.inverse_transform(next_value_normalized)[0, 0]
         predictions.append(next_value)

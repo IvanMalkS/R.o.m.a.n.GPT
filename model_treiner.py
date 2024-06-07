@@ -25,11 +25,6 @@ def create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS, units, 
     model.add(Dropout(0.2))
     model.add(BatchNormalization())
 
-    # Adding CuDNN optimized Bidirectional GRU layer
-    model.add(Bidirectional(GRU(units, return_sequences=True, kernel_initializer='orthogonal', kernel_regularizer=l2(0.01))))
-    model.add(Dropout(0.2))
-    model.add(BatchNormalization())
-
     # Adding another CuDNN optimized Bidirectional LSTM layer
     model.add(Bidirectional(LSTM(units, kernel_initializer='orthogonal', kernel_regularizer=l2(0.01))))
     model.add(Dropout(0.2))
@@ -62,7 +57,7 @@ def create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS, units, 
     checkpoint = ModelCheckpoint('best_model.keras', monitor='val_loss', save_best_only=True, mode='min')
 
     def scheduler(epoch, lr):
-        if epoch < 50:
+        if epoch < 10:
             return float(lr)
         else:
             return float(lr * tf.math.exp(-0.1))
@@ -71,7 +66,7 @@ def create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS, units, 
 
     history = model.fit(
         X_train, y_train,
-        epochs=50,
+        epochs=100,
         batch_size=batch_size,
         validation_data=(X_test, y_test),
         verbose=1,
