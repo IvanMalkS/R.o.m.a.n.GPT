@@ -1,10 +1,9 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization, Bidirectional
+from tensorflow.keras.layers import LSTM, GRU, Dense, Dropout, BatchNormalization, Bidirectional
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler
 from tensorflow.keras.regularizers import l2
 import tensorflow.keras.backend as K
-
 
 def correlation_coefficient(y_true, y_pred):
     x = y_true
@@ -17,18 +16,21 @@ def correlation_coefficient(y_true, y_pred):
     r = r_num / r_den
     return K.mean(r)
 
-
 def create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS, units, batch_size=32):
     model = Sequential()
     model.add(tf.keras.Input(shape=(TIME_STEPS, X_train.shape[2])))
 
-    # Adding Bidirectional LSTM layers
-    model.add(
-        Bidirectional(LSTM(units, return_sequences=True, kernel_initializer='orthogonal', kernel_regularizer=l2(0.01))))
+    # Adding CuDNN optimized Bidirectional LSTM layer
+    model.add(Bidirectional(LSTM(units, return_sequences=True, kernel_initializer='orthogonal', kernel_regularizer=l2(0.01))))
     model.add(Dropout(0.2))
     model.add(BatchNormalization())
 
-    # Adding a second LSTM layer
+    # Adding CuDNN optimized Bidirectional GRU layer
+    model.add(Bidirectional(GRU(units, return_sequences=True, kernel_initializer='orthogonal', kernel_regularizer=l2(0.01))))
+    model.add(Dropout(0.2))
+    model.add(BatchNormalization())
+
+    # Adding another CuDNN optimized Bidirectional LSTM layer
     model.add(Bidirectional(LSTM(units, kernel_initializer='orthogonal', kernel_regularizer=l2(0.01))))
     model.add(Dropout(0.2))
     model.add(BatchNormalization())
@@ -42,6 +44,9 @@ def create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS, units, 
     model.add(BatchNormalization())
 
     model.add(Dense(1, activation='linear'))  # Changing activation function to linear for regression
+
+    # Use mixed precision
+    tf.keras.mixed_precision.set_global_policy('mixed_float16')
 
     model.compile(optimizer='adam', loss='mse', metrics=[correlation_coefficient])
 
@@ -66,11 +71,14 @@ def create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS, units, 
 
     history = model.fit(
         X_train, y_train,
-        epochs=100,
+        epochs=50,
         batch_size=batch_size,
         validation_data=(X_test, y_test),
-        verbose=0,
+        verbose=1,
         callbacks=[custom_checkpoint_callback, early_stopping, checkpoint, lr_scheduler]
     )
 
     return model, history
+
+# Example usage
+# model, history = create_and_train_model(X_train, y_train, X_test, y_test, TIME_STEPS=60, units=50, batch_size=32)
