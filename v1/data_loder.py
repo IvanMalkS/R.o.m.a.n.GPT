@@ -43,3 +43,18 @@ def load_data(file_path='cached_data.json'):
             with open(file_path, 'w') as f:
                 json.dump(data, f)
     return data
+import os
+import numpy as np
+
+def data_generator(file_list, batch_size, time_steps):
+    while True:
+        batch_X, batch_y = [], []
+        for file in file_list:
+            data = np.load(file)
+            X, y = data[:, :-1], data[:, -1]
+            for i in range(0, len(X) - time_steps, time_steps):
+                batch_X.append(X[i:i + time_steps])
+                batch_y.append(y[i + time_steps])
+                if len(batch_X) == batch_size:
+                    yield np.array(batch_X), np.array(batch_y)
+                    batch_X, batch_y = [], []

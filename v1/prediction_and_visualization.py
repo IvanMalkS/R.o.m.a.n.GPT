@@ -5,12 +5,15 @@ import tensorflow as tf
 
 from model_treiner import create_and_train_model
 
+
 def predict_and_inverse_transform(model, last_sequence, scaler_y):
     next_value_normalized = model.predict(last_sequence)
     next_value = scaler_y.inverse_transform(next_value_normalized)[0, 0]
     return next_value
 
-def predict_and_visualize(X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual_values, X, min_error_threshold=1.0):
+
+def predict_and_visualize(X_train, X_test, y_train, y_test, scaler_X, scaler_y, actual_values, X,
+                          min_error_threshold=1.0):
     # Create directory for saving models, if it doesn't exist
     if not os.path.exists('models'):
         os.makedirs('models')
@@ -105,6 +108,7 @@ def predict_and_visualize(X_train, X_test, y_train, y_test, scaler_X, scaler_y, 
                 model_filename = f'models/best_model_{mean_error:.2f}%.keras'
                 model.save(model_filename)
 
+
 def predict_and_calculate_mean_error(model, X, scaler_X, scaler_y, actual_values):
     TIME_STEPS = min(30, len(X))  # Choose the window size
     last_sequence = X[-TIME_STEPS:]  # Use the last TIME_STEPS elements to predict the next value
@@ -112,7 +116,7 @@ def predict_and_calculate_mean_error(model, X, scaler_X, scaler_y, actual_values
 
     predictions = []
 
-    for _ in range(15):  # Predict for the next 30 days
+    for _ in range(15):  # Predict for the next 15 days
         next_value_normalized = model.predict(last_sequence)
         next_value = scaler_y.inverse_transform(next_value_normalized)[0, 0]
         predictions.append(next_value)
@@ -122,4 +126,6 @@ def predict_and_calculate_mean_error(model, X, scaler_X, scaler_y, actual_values
                                  np.array(next_value).reshape(1, 1, 1).repeat(X.shape[1], axis=2), axis=1)
         last_sequence = new_sequence
 
-    return np.mean([(abs(a - p) / a) * 100 for a, p in zip(actual_values, predictions)])
+    # Calculate and return the mean error
+    mean_error = np.mean([(abs(a - p) / a) * 100 for a, p in zip(actual_values, predictions)])
+    return mean_error
